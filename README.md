@@ -6,6 +6,8 @@ Simple bar script for dwm and other window managers.
 
 Inspired by dwmblocks. Written in posix.
 
+The font I use is Mononoki Nerd Font.
+
 ## Features
 * Modules update with variable timing.
 * Signalling to update modules when needed.
