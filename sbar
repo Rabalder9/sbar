@@ -1,4 +1,4 @@
-#!/bin/dash
+#!/bin/env sh
 
 # INIT
 printf "$$" > ~/.cache/pidofbar
@@ -6,7 +6,7 @@ sec=0
 
 # MODULES
 update_cpu () { 
-    read -r cputemp </sys/class/thermal/thermal_zone2/temp
+    read -r cputemp </sys/class/thermal/thermal_zone0/temp
     cpu="CPU: $((cputemp/1000))°"
 }
 
@@ -16,27 +16,27 @@ update_time () {
 
 
 update_bat () { 
-	read -r bat_status </sys/class/power_supply/BAT0/status
-	read -r bat_capacity </sys/class/power_supply/BAT0/capacity
-#	bat="$bat_status: $bat_capacity%"
-    [ "$bat_status" = "Full" ] && bat=" $bat_capacity%"
-    [ "$bat_status" = "Discharging" ] && bat=" $bat_capacity%"
-    [ "$bat_status" = "Charging" ] && bat=" $bat_capacity%"
+	read -r bat_capacity1 </sys/class/power_supply/BAT0/capacity
+	read -r bat_status2 </sys/class/power_supply/BAT1/status
+	read -r bat_capacity2 </sys/class/power_supply/BAT1/capacity
+
+  bat_capacity=$(((bat_capacity1+bat_capacity2)/2))
+
+	if [ "$bat_capacity" = "20" ]; then notify-send "Lavt batteri!"
+	fi
+
+	bat="BAT: $bat_capacity%"
 }
 
 update_vol () {
-    vol="$([ "$(pamixer --get-mute)" = "false" ] && printf '墳 ' || printf '婢 ')$(pamixer --get-volume)%"
+	vol="VOL: $(pamixer --get-volume-human)"
 }
-
-#update_vol () { 
-#    vol="$([ "$(amixer -D pulse get Master | awk -F 'Left:|[][]' 'BEGIN {RS=""}{ print $5 }') = "off" ] && printf ' muted' || printf '')$(amixer -D pulse get Master | awk -F 'Left:|[][]' 'BEGIN {RS=""}{ print $3 }')%"
-#}
 
 update_backlight () { 
 	# you might need to change the path depending on your device
 	read -r actual_brightness </sys/class/backlight/intel_backlight/actual_brightness
 	read -r max_brightness </sys/class/backlight/intel_backlight/max_brightness
-	backlight="☀ $((actual_brightness*100/max_brightness))%"
+	backlight="☀$((actual_brightness*100/max_brightness))%"
 }
 
 
@@ -59,17 +59,14 @@ trap	"update_bat;display" 		"RTMIN+2"
 
 while true
 do
-	sleep 1 & wait && { 
 		# to update item ever n seconds with a offset of m
 		## [ $((sec % n)) -eq m ] && udpate_item
 		[ $((sec % 20 )) -eq 0 ] && update_time 	# update time every 20 seconds
-		[ $((sec % 20)) -eq 0 ] && update_cpu 	# update cpu every 15 seconds
-		[ $((sec % 60)) -eq 0 ] && update_bat
+		[ $((sec % 20)) -eq 0 ] && update_cpu 	# update cpu every 20 seconds
+		[ $((sec % 30)) -eq 0 ] && update_bat
 
 		# how often the display updates ( 5 seconds )
 		[ $((sec % 20 )) -eq 0 ] && display
 		sec=$((sec + 1))
-	}
+		sleep 1 & wait
 done 
-
-
